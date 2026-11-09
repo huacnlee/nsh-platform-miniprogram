@@ -353,7 +353,7 @@ mod tests {
             .child(text(move || format!("Count {}", count.get())))
     }
 
-    /// The text ops' lines, in order.
+    /// The text ops' runs, in order.
     fn texts(pumped: &Pumped) -> Vec<String> {
         pumped
             .batches
@@ -361,7 +361,7 @@ mod tests {
             .flat_map(|b| b.as_array().unwrap().clone())
             .filter(|op| op[0] == "t")
             .flat_map(|op| {
-                op[2]["lines"]
+                op[2]["runs"]
                     .as_array()
                     .unwrap()
                     .iter()

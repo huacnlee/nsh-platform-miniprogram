@@ -71,23 +71,19 @@ pub fn item(item: &MountItem) -> Option<Value> {
             ..
         } => {
             let layout = layout.downcast::<Layout>()?;
-            let lines: Vec<Value> = layout
+            let runs: Vec<Value> = layout
                 .lines
                 .iter()
-                .map(|l| {
-                    // An inline view's placeholder (U+FFFC) is the view's
-                    // place, never a glyph.
-                    let text = l.text.replace('\u{FFFC}', "");
-                    json!([text, round(l.x), round(l.y)])
-                })
+                .flat_map(|l| &l.runs)
+                .filter(|r| !r.text.is_empty())
+                .map(|r| json!([r.text, round(r.x), round(r.y), round(r.height), r.style]))
                 .collect();
+            let styles: Vec<&str> = layout.styles.iter().map(|s| s.css.as_str()).collect();
             json!(["t", id, {
-                "font": layout.style.font_css,
-                "color": color(layout.style.color),
-                "lineHeight": layout.style.line_height,
                 "x": round(content.origin.x.0),
                 "y": round(content.origin.y.0),
-                "lines": lines,
+                "styles": styles,
+                "runs": runs,
             }])
         }
         MountItem::Events { id, events } => {

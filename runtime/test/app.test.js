@@ -58,7 +58,13 @@ function host(timers) {
 
 /** Every text line the page shows, depth first. */
 function lines(node, out = []) {
-  if (node.t) for (const line of node.t.lines) out.push(line[0])
+  // A line's runs share a top when they share a style's height; join
+  // the runs of a row.
+  if (node.t) {
+    const rows = new Map()
+    for (const run of node.t.runs) rows.set(run[2] + run[3] / 2, (rows.get(run[2] + run[3] / 2) || '') + run[0])
+    for (const row of rows.values()) out.push(row)
+  }
   for (const child of node.c || []) lines(child, out)
   return out
 }

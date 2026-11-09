@@ -37,7 +37,7 @@ nsh-engine             LocalEngine，以 WebAssembly 运行在小程序逻辑层
 nsh-platform-miniprogram
   src/lib.rs           Runtime：启动并驱动引擎，送回点击、滚动和尺寸变化
   src/encode.rs        每个 MountBatch → JSON 操作（["c", 2, "view"]、["f", 2, 0, 0, 100, 40]……）
-  src/text.rs          基于逻辑层 canvas measureText 的 TextEngine；在引擎一侧断行
+  src/text.rs          基于逻辑层 canvas measureText 的 TextEngine；在引擎一侧把多样式的文本断成行
   src/effects.rs       阴影、渐变、滤镜、变换、过渡 → CSS
   src/anim.rs          NSH 的动画图，随小程序的帧推进；绑定的值以内联 CSS 输出
   src/canvas.rs        canvas 的绘制 → 2D context 调用，由 nsh/canvas.js 回放
@@ -57,13 +57,13 @@ nsh-platform-miniprogram-cli
 
 - 支持用 **Rust** 编写的应用（`nsh.json` 的 `"rust"` 和 `"root"`）。TSX 应用需要 QuickJS，本平台暂未把它构建到 WebAssembly。
 - 已支持：视图（背景、圆角、边框、不透明度、裁剪、阴影、渐变、滤镜、背景模糊、变换、样式过渡和关键帧动画），
-  文本（每段文本一种样式：取第一个 span 的字体、字号、字重和颜色），URL 图片和应用自带的图片，canvas（在逻辑层绘制，
+  文本（各 span 保留自己的字体、字号、字重、颜色、装饰线和字距，共用基线；行内视图），URL 图片和应用自带的图片，canvas（在逻辑层绘制，
   以图片显示），滚动视图（以及由应用滚动），文本输入（单行和多行：输入、提交、焦点），点击（`onPress`、
   `onPressIn` / `onPressOut`、`onLongPress`）和按下状态（`active:`），原生动画图（弹簧、时间曲线、跟随滚动偏移的值），
   基于小程序页面的导航栈（小程序自己的导航栏、返回按钮和返回手势），显示在顶层页面之上的模态框和底部弹层，
   浅色和深色外观，窗口尺寸变化。
 - 尚未支持：应用自带的字体文件，点击以外的手势（拖动、捏合），下拉刷新，列表的吸顶单元格，canvas 上的图片，
-  一段文本中的多种样式，视频，web view。
+  基线以外对齐方式的行内视图，视频，web view。
 
 欢迎为以上任何一项提交 PR。
 

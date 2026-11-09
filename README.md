@@ -39,7 +39,7 @@ nsh-engine             LocalEngine, in WebAssembly in the Mini Program's logic l
 nsh-platform-miniprogram
   src/lib.rs           Runtime: starts the engine, pumps it, sends taps, scrolls and size changes
   src/encode.rs        each MountBatch → JSON operations (["c", 2, "view"], ["f", 2, 0, 0, 100, 40], ...)
-  src/text.rs          a TextEngine on the logic layer's canvas measureText; lines broken on the engine's side
+  src/text.rs          a TextEngine on the logic layer's canvas measureText; lines of styled runs broken on the engine's side
   src/effects.rs       shadows, gradients, filters, transforms, transitions as CSS
   src/anim.rs          NSH's animation graph, ticked on the Mini Program's frames; bound values as inline CSS
   src/canvas.rs        a canvas's drawing as 2D context calls, replayed by nsh/canvas.js
@@ -61,15 +61,15 @@ measured them.
 - Apps written in **Rust** (`nsh.json` `"rust"` and `"root"`). TSX apps need QuickJS, which this platform does not
   build for WebAssembly yet.
 - Shown: views (background, corners, borders, opacity, clipping, shadows, gradients, filters, the backdrop's blur,
-  transforms, style transitions and keyframes), text (one style per text: the first span's font, size, weight and
-  color), images by URL and the app's own, canvases (drawn in the logic layer and shown as pictures), scroll views
+  transforms, style transitions and keyframes), text (spans of their own font, size, weight, color, decoration and
+  spacing on a shared baseline, inline views), images by URL and the app's own, canvases (drawn in the logic layer and shown as pictures), scroll views
   (and scrolling them from the app), text inputs (single and multiline: typing, submit, focus), taps (`onPress`,
   `onPressIn` / `onPressOut`, `onLongPress`) and press states (`active:`), the native animation graph (springs,
   timings, values that follow scroll offsets), navigation stacks on the Mini Program's own pages (its navigation
   bar, back button and back gesture), modals and sheets over the top page, light and dark appearance, window
   resizes.
 - Not yet: the app's font files, gestures beyond taps (drags, pinches), pull to refresh, sticky list cells, images on
-  canvases, text with several styles in one text, video, web views.
+  canvases, inline views aligned other than on the baseline, video, web views.
 
 Pull requests for any of these are welcome.
 

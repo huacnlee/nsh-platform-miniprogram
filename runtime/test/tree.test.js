@@ -15,12 +15,12 @@ test('inserts build the tree and send the root children whole', () => {
     ['i', 2, 4, null],
     ['i', ROOT_ID, 2, null],
     ['f', 2, 0, 0, 100, 40],
-    ['t', 4, { lines: [['Hi', 0, 0]] }],
+    ['t', 4, { styles: [''], runs: [['Hi', 0, 0, 17, 0]] }],
   ])
   assert.deepEqual(Object.keys(data), ['root.c'])
   assert.equal(data['root.c'][0].id, 2)
   assert.deepEqual(data['root.c'][0].f, [0, 0, 100, 40])
-  assert.equal(data['root.c'][0].c[0].t.lines[0][0], 'Hi')
+  assert.equal(data['root.c'][0].c[0].t.runs[0][0], 'Hi')
 })
 
 test('later changes are sent by path', () => {
@@ -34,11 +34,11 @@ test('later changes are sent by path', () => {
     ['i', 2, 6, null],
   ])
   const data = tree.apply([
-    ['t', 6, { lines: [['Count 1', 0, 0]] }],
+    ['t', 6, { styles: [''], runs: [['Count 1', 0, 0, 17, 0]] }],
     ['e', 4, 1],
   ])
   assert.deepEqual(data, {
-    'root.c[0].c[1].t': { lines: [['Count 1', 0, 0]] },
+    'root.c[0].c[1].t': { styles: [''], runs: [['Count 1', 0, 0, 17, 0]] },
     'root.c[0].c[0].p': true,
     'root.c[0].c[0].io': false,
     'root.c[0].c[0].lp': false,

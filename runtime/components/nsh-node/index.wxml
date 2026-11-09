@@ -91,11 +91,11 @@
     style="width:{{node.f[2]}}px;height:{{node.f[3]}}px"
   />
   <text
-    wx:for="{{node.t ? node.t.lines : []}}"
-    wx:for-item="line"
+    wx:for="{{node.t ? node.t.runs : []}}"
+    wx:for-item="run"
     wx:key="index"
     class="line"
-    style="left:{{node.t.x + line[1]}}px;top:{{node.t.y + line[2]}}px;{{node.t.font}}line-height:{{node.t.lineHeight}}px;color:{{node.t.color}}"
-  >{{line[0]}}</text>
+    style="left:{{node.t.x + run[1]}}px;top:{{node.t.y + run[2]}}px;line-height:{{run[3]}}px;{{node.t.styles[run[4]]}}"
+  >{{run[0]}}</text>
   <nsh-node wx:for="{{node.c}}" wx:key="id" node="{{item}}" />
 </view>
