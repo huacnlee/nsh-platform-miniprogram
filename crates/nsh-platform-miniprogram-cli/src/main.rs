@@ -137,7 +137,10 @@ fn app_dir(options: &Options) -> anyhow::Result<PathBuf> {
         dir
     };
     if !dir.join("nsh.json").is_file() {
-        bail!("{} has no nsh.json: give the app's directory", dir.display());
+        bail!(
+            "{} has no nsh.json: give the app's directory",
+            dir.display()
+        );
     }
     dir.canonicalize()
         .with_context(|| format!("no {}", dir.display()))
@@ -173,7 +176,14 @@ fn package(app: &Path, out: &Path, options: &Options) -> anyhow::Result<()> {
     runner::write(&runner, &rust_app)?;
     let module = runner::build(&runner, options.verbose)?;
     wasm::check(&wasm::imports(&std::fs::read(&module)?)?)?;
-    project::write(out, &config, &module, options.appid.as_deref())
+    let assets = app.join(".nsh/miniprogram/build/assets");
+    project::write(
+        out,
+        &config,
+        &module,
+        assets.is_dir().then_some(assets.as_path()),
+        options.appid.as_deref(),
+    )
 }
 
 /// Opens the project in WeChat DevTools when its command line is there.

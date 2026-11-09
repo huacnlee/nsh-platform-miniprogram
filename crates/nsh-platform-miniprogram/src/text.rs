@@ -12,9 +12,7 @@
 use std::sync::Arc;
 
 use nsh_core::{
-    AttributedText, Points, Size, TextEngine, TextLayout,
-    geometry::size,
-    Color, TextAlign,
+    AttributedText, Color, Points, Size, TextAlign, TextEngine, TextLayout, geometry::size,
 };
 
 /// Measures text in the host's fonts.
@@ -47,8 +45,12 @@ fn font_size_of(font: &str) -> f32 {
 /// What the render layer needs to draw a text's run of lines.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TextStyle {
-    /// The CSS `font` shorthand the widths were measured in.
+    /// The CSS `font` shorthand the widths were measured in (the
+    /// canvas's `font`).
     pub font: String,
+    /// The same font as CSS declarations, which the render layer takes
+    /// (it drops a `font` shorthand in inline styles).
+    pub font_css: String,
     /// The text color.
     pub color: Color,
     /// The height of each line.
@@ -150,6 +152,31 @@ impl<M: Measure> MiniProgramTextEngine<M> {
     }
 }
 
+/// The family texts without one of their own are measured and drawn in,
+/// named rather than `sans-serif`: the logic layer's canvas and the render
+/// layer resolve `sans-serif` to different fonts (Helvetica and PingFang SC
+/// in WeChat DevTools on a Mac), so lines measured in one would not fit in
+/// the other. WeChat's own on iOS first, then the common system fonts.
+const DEFAULT_FAMILY: &str = "'PingFang SC','Helvetica Neue',Helvetica,Arial,sans-serif";
+
+/// The CSS family list of a text in `name` (the default's without one).
+fn family(name: Option<&str>) -> String {
+    name.map_or_else(
+        || DEFAULT_FAMILY.to_owned(),
+        |f| format!("'{f}',{DEFAULT_FAMILY}"),
+    )
+}
+
+/// A font as CSS declarations (the render layer drops a `font` shorthand
+/// in inline styles).
+pub(crate) fn font_css(size: f32, weight: u16, italic: bool, name: Option<&str>) -> String {
+    format!(
+        "font-style:{};font-weight:{weight};font-size:{size}px;font-family:{};",
+        if italic { "italic" } else { "normal" },
+        family(name)
+    )
+}
+
 impl<M: Measure> TextEngine for MiniProgramTextEngine<M> {
     type Prepared = Prepared;
 
@@ -158,17 +185,15 @@ impl<M: Measure> TextEngine for MiniProgramTextEngine<M> {
         let font_size = first.map_or(14.0, |s| s.font_size.0);
         let weight = first.map_or(400, |s| s.font_weight);
         let italic = first.is_some_and(|s| s.italic);
-        let family = first
-            .and_then(|s| s.font_family)
-            .map_or_else(|| "sans-serif".to_owned(), |f| format!("\"{}\"", f.name()));
+        let name = first.and_then(|s| s.font_family.as_ref()).map(|f| f.name());
+        let family = family(name.as_deref());
         let line_height = first
             .map(|s| s.line_height.0)
             .filter(|h| *h > 0.0)
             .unwrap_or(font_size * 1.2);
-        let font = format!(
-            "{} {weight} {font_size}px {family}",
-            if italic { "italic" } else { "normal" }
-        );
+        let style = if italic { "italic" } else { "normal" };
+        let font = format!("{style} {weight} {font_size}px {family}");
+        let font_css = font_css(font_size, weight, italic, name.as_deref());
         let paragraphs = text
             .text
             .split('\n')
@@ -193,6 +218,7 @@ impl<M: Measure> TextEngine for MiniProgramTextEngine<M> {
         Prepared {
             style: TextStyle {
                 font,
+                font_css,
                 color: first.map_or(Color(0x000000ff), |s| s.color),
                 line_height,
             },

@@ -27,6 +27,9 @@
 //! this crate for `wasm32-unknown-unknown`, where [`ffi`] exports the
 //! functions `nsh-mp.js` calls.
 
+mod anim;
+pub mod canvas;
+mod effects;
 pub mod encode;
 #[cfg(target_arch = "wasm32")]
 pub mod ffi;
@@ -34,13 +37,13 @@ pub mod text;
 
 use std::sync::{Arc, Mutex};
 
+use nsh_core::MountBatch;
 use nsh_core::{
     EventKind, EventPayload, Points, Size,
     element::{Registry, Root},
     geometry::point,
     platform::{ColorScheme, Idiom, Os},
 };
-use nsh_core::MountBatch;
 use nsh_engine::{App, EngineConfig, EngineControl, Environment, LocalEngine, MountSink};
 use serde_json::Value;
 
@@ -97,7 +100,7 @@ impl Device {
 }
 
 /// What the engine hands the Mini Program between two pumps.
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct Outbox {
     /// Each commit's operations ([`encode::batch`]), in order.
     batches: Vec<Value>,
@@ -105,6 +108,8 @@ struct Outbox {
     frame: bool,
     /// Errors of the app, as text.
     errors: Vec<String>,
+    /// The native animation graph, which the batches drive.
+    anim: anim::Anim,
 }
 
 /// The engine's [`MountSink`]: encodes each commit into the outbox.
@@ -112,9 +117,21 @@ struct Sink(Arc<Mutex<Outbox>>);
 
 impl MountSink for Sink {
     fn submit(&self, batch: MountBatch) {
-        let ops = encode::batch(&batch);
-        if ops.as_array().is_some_and(|ops| !ops.is_empty()) {
-            self.0.lock().unwrap_or_else(|e| e.into_inner()).batches.push(ops);
+        let mut outbox = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        for item in &batch.items {
+            outbox.anim.apply(item);
+            if encode::item(item).is_none() && !animation(item) {
+                skipped(item);
+            }
+        }
+        let mut ops = encode::batch(&batch);
+        // Bound properties follow the styles just set.
+        let animated = outbox.anim.outputs();
+        if let Some(list) = ops.as_array_mut() {
+            list.extend(animated);
+            if !list.is_empty() {
+                outbox.batches.push(ops);
+            }
         }
     }
 
@@ -126,6 +143,35 @@ impl MountSink for Sink {
         log::error!("{message}");
         let mut outbox = self.0.lock().unwrap_or_else(|e| e.into_inner());
         outbox.errors.push(message.to_owned());
+    }
+}
+
+/// Items the animation graph takes ([`anim::Anim`]).
+fn animation(item: &nsh_core::MountItem) -> bool {
+    use nsh_core::MountItem as M;
+    matches!(
+        item,
+        M::Animation(_) | M::AnimationBindings { .. } | M::Gestures { .. } | M::StickyCells { .. }
+    )
+}
+
+/// Logs each kind of mount item this platform does not show yet, once:
+/// what an app uses that the Mini Program leaves out.
+fn skipped(item: &nsh_core::MountItem) {
+    use std::{collections::HashSet, sync::OnceLock};
+    static SEEN: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    let debug = format!("{item:?}");
+    let kind = debug
+        .split(|c: char| !c.is_alphanumeric())
+        .next()
+        .unwrap_or_default()
+        .to_owned();
+    let mut seen = SEEN
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    if seen.insert(kind.clone()) {
+        log::info!("not shown on this platform yet: MountItem::{kind}");
     }
 }
 
@@ -153,12 +199,7 @@ impl<M: Measure + 'static> Runtime<M> {
     /// Starts `root` with `ui_sets` (`nsh/base` and the app's) on `device`,
     /// measuring text with `measure`; `None` if the app could not start
     /// (the reason is in the log).
-    pub fn start(
-        root: Root,
-        ui_sets: Vec<Registry>,
-        device: Device,
-        measure: M,
-    ) -> Option<Self> {
+    pub fn start(root: Root, ui_sets: Vec<Registry>, device: Device, measure: M) -> Option<Self> {
         let outbox = Arc::new(Mutex::new(Outbox::default()));
         let config = EngineConfig {
             viewport: Size::new(Points(device.width), Points(device.height)),
@@ -186,9 +227,14 @@ impl<M: Measure + 'static> Runtime<M> {
     pub fn pump(&mut self) -> Pumped {
         let deadline = self.engine.pump();
         let mut outbox = self.outbox.lock().unwrap_or_else(|e| e.into_inner());
+        let finished = outbox.anim.finished();
+        if !finished.is_empty() {
+            self.control.animations_finished(finished);
+        }
+        let animating = outbox.anim.animating();
         Pumped {
             batches: std::mem::take(&mut outbox.batches),
-            frame: std::mem::take(&mut outbox.frame),
+            frame: std::mem::take(&mut outbox.frame) || animating,
             next: deadline.map(|at| {
                 at.saturating_duration_since(nsh_core::time::Instant::now())
                     .as_secs_f64()
@@ -200,6 +246,16 @@ impl<M: Measure + 'static> Runtime<M> {
 
     /// A display frame (asked for with [`Pumped::frame`]).
     pub fn frame(&mut self) -> Pumped {
+        {
+            let mut outbox = self.outbox.lock().unwrap_or_else(|e| e.into_inner());
+            if outbox.anim.animating() {
+                outbox.anim.tick();
+                let ops = outbox.anim.outputs();
+                if !ops.is_empty() {
+                    outbox.batches.push(Value::Array(ops));
+                }
+            }
+        }
         self.control.frame();
         self.pump()
     }
@@ -208,18 +264,46 @@ impl<M: Measure + 'static> Runtime<M> {
     /// `onPressOut` or `onLongPress` ([`EventKind::from_prop`]).
     pub fn event(&mut self, id: u32, kind: &str) -> Pumped {
         if let Some(kind) = EventKind::from_prop(kind) {
-            self.control
-                .dispatch_event(id, kind, EventPayload::None);
+            self.control.dispatch_event(id, kind, EventPayload::None);
         } else {
             log::warn!("unknown event {kind}");
         }
         self.pump()
     }
 
+    /// Input `id` reported `kind` (`onChangeText`, `onSubmitEditing`) with
+    /// its whole `text`, after its `count`th edit by the user.
+    pub fn text(&mut self, id: u32, kind: &str, text: String, count: u32) -> Pumped {
+        match EventKind::from_prop(kind) {
+            Some(kind) => self
+                .control
+                .dispatch_event(id, kind, EventPayload::Text { text, count }),
+            None => log::warn!("unknown event {kind}"),
+        }
+        self.pump()
+    }
+
+    /// The interaction states of view `id` the core tracks
+    /// ([`nsh_core::MountItem::TrackStates`], `nsh_core::tailwind::state`
+    /// bits): pressed, focused.
+    pub fn states(&mut self, id: u32, states: u16) -> Pumped {
+        self.control.set_states(id, states);
+        self.pump()
+    }
+
     /// Scroll view `id` is at `(x, y)`.
     pub fn scroll(&mut self, id: u32, x: f32, y: f32) -> Pumped {
-        self.control
-            .scroll(id, point(Points(x), Points(y)), 0);
+        let offset = point(Points(x), Points(y));
+        {
+            let mut outbox = self.outbox.lock().unwrap_or_else(|e| e.into_inner());
+            if outbox.anim.scrolled(id, offset) {
+                let ops = outbox.anim.outputs();
+                if !ops.is_empty() {
+                    outbox.batches.push(Value::Array(ops));
+                }
+            }
+        }
+        self.control.scroll(id, offset, 0);
         self.pump()
     }
 
@@ -309,10 +393,9 @@ mod tests {
             .find(|op| op[0] == "e" && op[2].as_u64().unwrap() & 1 == 1)
             .map(|op| op[1].as_u64().unwrap() as u32)
             .expect("a view reporting presses");
-        assert!(
-            ops.iter()
-                .any(|op| op[0] == "s" && op[1] == button && op[2] == "background-color:rgb(37,99,235);")
-        );
+        assert!(ops.iter().any(|op| op[0] == "s"
+            && op[1] == button
+            && op[2] == "background-color:rgb(37,99,235);"));
         let pressed = runtime.event(button, "onPress");
         assert_eq!(texts(&pressed), ["Count 1"]);
     }
@@ -323,7 +406,11 @@ mod tests {
         assert_eq!(environment.platform_name(), "miniprogram");
         assert_eq!(environment.os, Os::Ios);
         assert!(!environment.desktop());
-        let android = Device { os: Os::Android, ..Device::default() }.environment();
+        let android = Device {
+            os: Os::Android,
+            ..Device::default()
+        }
+        .environment();
         assert_eq!(android.os.name(), "android");
         assert_eq!(android.platform_name(), "miniprogram");
     }

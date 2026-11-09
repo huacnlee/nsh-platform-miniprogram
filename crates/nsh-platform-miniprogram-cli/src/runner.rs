@@ -24,11 +24,15 @@ fn backend() -> String {
                 .and_then(Path::parent)
                 .map(Path::to_path_buf)
         })
-        .filter(|dir| dir.join("crates/nsh-platform-miniprogram/Cargo.toml").is_file());
+        .filter(|dir| {
+            dir.join("crates/nsh-platform-miniprogram/Cargo.toml")
+                .is_file()
+        });
     match checkout {
         Some(dir) => format!(
             "{{ path = {:?} }}",
-            dir.join("crates/nsh-platform-miniprogram").to_string_lossy()
+            dir.join("crates/nsh-platform-miniprogram")
+                .to_string_lossy()
         ),
         None => format!(
             "{{ git = \"https://github.com/huacnlee/nsh-platform-miniprogram\", tag = \"v{}\" }}",
@@ -90,8 +94,8 @@ fn workspace_patches(workspace_manifest: &str) -> String {
 pub(crate) fn write(dir: &Path, rust_app: &Path) -> anyhow::Result<()> {
     let manifest = fs::read_to_string(rust_app.join("Cargo.toml"))
         .with_context(|| format!("reading {}", rust_app.display()))?;
-    let package = value(&manifest, "name = ", "name")
-        .context("NSH's rust-app crate has no package name")?;
+    let package =
+        value(&manifest, "name = ", "name").context("NSH's rust-app crate has no package name")?;
     let workspace = rust_app
         .parent()
         .and_then(|ws| fs::read_to_string(ws.join("Cargo.toml")).ok())
@@ -157,7 +161,11 @@ pub(crate) fn build(dir: &Path, verbose: bool) -> anyhow::Result<PathBuf> {
         ])
         .current_dir(dir)
         .stdout(Stdio::piped())
-        .stderr(if verbose { Stdio::inherit() } else { Stdio::piped() })
+        .stderr(if verbose {
+            Stdio::inherit()
+        } else {
+            Stdio::piped()
+        })
         .spawn()
         .context("running cargo")?;
     let mut module = None;
@@ -180,9 +188,7 @@ pub(crate) fn build(dir: &Path, verbose: bool) -> anyhow::Result<PathBuf> {
     let output = child.wait_with_output()?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        bail!(
-            "the module did not build (rustup target add wasm32-unknown-unknown?)\n{stderr}"
-        );
+        bail!("the module did not build (rustup target add wasm32-unknown-unknown?)\n{stderr}");
     }
     module.context("cargo built no .wasm")
 }
@@ -202,7 +208,10 @@ mod tests {
             nsh_source(RUST_APP, "nsh-engine").as_deref(),
             Some("{ path = \"/src/nsh/crates/nsh-engine\" }")
         );
-        let registry = RUST_APP.replace("path = \"/src/nsh/crates/nsh-core\"", "version = \"=0.4.0\"");
+        let registry = RUST_APP.replace(
+            "path = \"/src/nsh/crates/nsh-core\"",
+            "version = \"=0.4.0\"",
+        );
         assert_eq!(nsh_source(&registry, "nsh-core"), None);
         let git = RUST_APP.replace(
             "path = \"/src/nsh/crates/nsh-core\"",

@@ -5,7 +5,7 @@
 //!
 //! | Op | Fields | Meaning |
 //! |---|---|---|
-//! | `c` | id, kind | create a view (`view`, `text`, `scroll`, `image`) |
+//! | `c` | id, kind | create a view (`view`, `text`, `scroll`, `image`, `canvas`, `stack`, `screen`, `modal`) |
 //! | `i` | parent, child, before | insert `child` below sibling `before` (`null`: on top) |
 //! | `r` | id | detach a view, keeping it |
 //! | `d` | id | destroy a view |
@@ -16,6 +16,8 @@
 //! | `sc` | id, horizontal | a scroll view's axis |
 //! | `ss` | id, width, height | a scroll view's content size |
 //! | `im` | id, src, mode | an image's source (`null`: none) and WeChat `mode` |
+//! | `cv` | id, ops | what a canvas draws ([`crate::canvas`]) |
+//! | `scr` | id, config | a screen's `{ title, header, preventBack }`: each screen pushed over a stack's first is a page of the Mini Program |
 //!
 //! Items this platform does not show yet are left out (`MountItem`'s other
 //! kinds: the README's "Status").
@@ -72,10 +74,15 @@ pub fn item(item: &MountItem) -> Option<Value> {
             let lines: Vec<Value> = layout
                 .lines
                 .iter()
-                .map(|l| json!([l.text, round(l.x), round(l.y)]))
+                .map(|l| {
+                    // An inline view's placeholder (U+FFFC) is the view's
+                    // place, never a glyph.
+                    let text = l.text.replace('\u{FFFC}', "");
+                    json!([text, round(l.x), round(l.y)])
+                })
                 .collect();
             json!(["t", id, {
-                "font": layout.style.font,
+                "font": layout.style.font_css,
                 "color": color(layout.style.color),
                 "lineHeight": layout.style.line_height,
                 "x": round(content.origin.x.0),
@@ -114,7 +121,94 @@ pub fn item(item: &MountItem) -> Option<Value> {
             };
             json!(["im", id, source.as_ref().map(|s| image_src(&s.uri)), mode])
         }
+        MountItem::ScreenConfig { id, config } => json!(["scr", id, {
+            "title": config.title.as_deref(),
+            "header": config.header_view,
+            "preventBack": config.prevent_back,
+        }]),
+        MountItem::Canvas { id, drawing } => {
+            json!([
+                "cv",
+                id,
+                serde_json::from_str::<Value>(&crate::canvas::encode(drawing)).ok()?
+            ])
+        }
+        MountItem::TrackStates { id, states } => json!(["ts", id, states]),
+        MountItem::Input { id, config } => json!(["in", id, input(config)]),
+        MountItem::InputValue { id, text, count } => json!(["iv", id, text, count]),
+        MountItem::InputContent { id, content } => json!([
+            "ic",
+            id,
+            round(content.origin.x.0),
+            round(content.origin.y.0),
+            round(content.size.width.0),
+            round(content.size.height.0)
+        ]),
+        MountItem::Command {
+            id,
+            command: nsh_core::Command::Focus,
+        } => json!(["fo", id, true]),
+        MountItem::Command {
+            id,
+            command: nsh_core::Command::Blur,
+        } => json!(["fo", id, false]),
+        MountItem::ScrollBy { id, dx, dy } => json!(["sb", id, round(dx.0), round(dy.0)]),
+        MountItem::Command {
+            id,
+            command: nsh_core::Command::ScrollTo { x, y, animated },
+        } => json!(["st", id, round(x.0), round(y.0), animated]),
         _ => return None,
+    })
+}
+
+/// An input's configuration as the `<input>` / `<textarea>` components
+/// take it.
+fn input(config: &nsh_core::InputConfig) -> Value {
+    use nsh_core::{KeyboardType as K, ReturnKeyType as R, TextAlign};
+    let style = &config.style;
+    let name = style.font_family.as_ref().map(|f| f.name());
+    let font = crate::text::font_css(
+        style.font_size.0,
+        style.font_weight,
+        style.italic,
+        name.as_deref(),
+    );
+    let mut css = format!("{font}color:{};", color(style.color));
+    if let Some(c) = config.caret_color {
+        let _ = write!(css, "caret-color:{};", color(c));
+    }
+    match config.align {
+        TextAlign::Center => css.push_str("text-align:center;"),
+        TextAlign::Right => css.push_str("text-align:right;"),
+        _ => {}
+    }
+    let kind = match config.keyboard {
+        K::Number => "number",
+        K::Decimal | K::Numeric => "digit",
+        _ => "text",
+    };
+    let confirm = match config.return_key {
+        R::Done | R::Default => "done",
+        R::Go => "go",
+        R::Next => "next",
+        R::Search => "search",
+        R::Send => "send",
+    };
+    let placeholder_color = config
+        .placeholder_color
+        .map(|c| format!("color:{};", color(c)));
+    json!({
+        "css": css,
+        "ph": config.placeholder,
+        "phs": placeholder_color.unwrap_or_default(),
+        "pw": config.secure,
+        "type": kind,
+        "ml": config.multiline,
+        "max": config.max_length.map_or(-1, i64::from),
+        "off": !config.editable,
+        "confirm": confirm,
+        "hold": !config.blur_on_submit,
+        "auto": config.auto_focus,
     })
 }
 
@@ -124,6 +218,11 @@ fn kind_name(kind: ViewKind) -> &'static str {
         ViewKind::Text => "text",
         ViewKind::Scroll => "scroll",
         ViewKind::Image => "image",
+        ViewKind::Canvas => "canvas",
+        ViewKind::Stack => "stack",
+        ViewKind::Screen => "screen",
+        ViewKind::Modal => "modal",
+        ViewKind::Input => "input",
         _ => "view",
     }
 }
@@ -209,6 +308,7 @@ pub fn css(style: &ViewStyle) -> String {
     if style.hidden {
         out.push_str("visibility:hidden;");
     }
+    crate::effects::write(&mut out, style);
     out
 }
 
@@ -244,7 +344,11 @@ mod tests {
         let ops: Vec<_> = items.iter().filter_map(item).collect();
         assert_eq!(
             Value::Array(ops),
-            json!([["c", 2, "view"], ["i", 0, 2, null], ["f", 2, 1.0, 2.5, 100.0, 0.33]])
+            json!([
+                ["c", 2, "view"],
+                ["i", 0, 2, null],
+                ["f", 2, 1.0, 2.5, 100.0, 0.33]
+            ])
         );
     }
 

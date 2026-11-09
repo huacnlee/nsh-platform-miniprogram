@@ -4,7 +4,8 @@
 //!
 //! Exports: `nsh_mp_alloc` / `nsh_mp_free` (memory for strings JS passes),
 //! `nsh_mp_init` (the runner's [`crate::app!`]), `nsh_mp_start`,
-//! `nsh_mp_pump`, `nsh_mp_frame`, `nsh_mp_event`, `nsh_mp_scroll`,
+//! `nsh_mp_pump`, `nsh_mp_frame`, `nsh_mp_event`, `nsh_mp_text`, `nsh_mp_states`,
+//! `nsh_mp_scroll`,
 //! `nsh_mp_device`. After each, what the engine made arrives through the
 //! imports: `submit` per commit, `request_frame`, `schedule` (the next
 //! pump, in ms; -1 for none) and `report_error`.
@@ -154,7 +155,9 @@ pub extern "C" fn nsh_mp_start(
     INIT.call_once(|| {
         let _ = log::set_logger(&LOGGER);
         log::set_max_level(log::LevelFilter::Info);
-        std::panic::set_hook(Box::new(|info| report_error(&format!("nsh panicked: {info}"))));
+        std::panic::set_hook(Box::new(|info| {
+            report_error(&format!("nsh panicked: {info}"))
+        }));
     });
     let Some((sets, root)) = APP.with(|a| a.borrow().as_ref().map(|make| make())) else {
         report_error("this module has no app: its runner calls `nsh_platform_miniprogram::app!`");
@@ -199,6 +202,39 @@ pub unsafe extern "C" fn nsh_mp_event(id: u32, name: *const u8, len: usize) {
     let bytes = unsafe { std::slice::from_raw_parts(name, len) };
     let name = String::from_utf8_lossy(bytes).into_owned();
     with_runtime(|r| r.event(id, &name));
+}
+
+/// Input `id` reported event `name` with its whole text, after the user's
+/// `count`th edit.
+///
+/// # Safety
+///
+/// Both strings are memory from [`nsh_mp_alloc`] holding UTF-8.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn nsh_mp_text(
+    id: u32,
+    name: *const u8,
+    name_len: usize,
+    text: *const u8,
+    text_len: usize,
+    count: u32,
+) {
+    // SAFETY: guaranteed by the caller.
+    let (name, text) = unsafe {
+        (
+            std::slice::from_raw_parts(name, name_len),
+            std::slice::from_raw_parts(text, text_len),
+        )
+    };
+    let name = String::from_utf8_lossy(name).into_owned();
+    let text = String::from_utf8_lossy(text).into_owned();
+    with_runtime(|r| r.text(id, &name, text, count));
+}
+
+/// View `id` shows interaction `states` (`nsh_core::tailwind::state`).
+#[unsafe(no_mangle)]
+pub extern "C" fn nsh_mp_states(id: u32, states: u32) {
+    with_runtime(|r| r.states(id, states as u16));
 }
 
 /// Scroll view `id` scrolled to `(x, y)`.

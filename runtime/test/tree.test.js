@@ -83,3 +83,37 @@ test('a parent sent whole covers its descendants changes', () => {
   ])
   assert.deepEqual(Object.keys(data), ['root.c[0].c'])
 })
+
+test('modals are drawn over the top page, not in the view that holds them', () => {
+  const tree = new Tree()
+  tree.apply([
+    ['c', 2, 'view'],
+    ['i', ROOT_ID, 2, null],
+    ['c', 4, 'modal'],
+    ['i', 2, 4, null],
+    ['c', 6, 'text'],
+    ['i', 4, 6, null],
+  ])
+  assert.deepEqual(tree.nodes.get(2).c, [])
+  assert.deepEqual(tree.overlays().map((n) => n.id), [4])
+
+  tree.add([['f', 6, 0, 0, 10, 10]])
+  const changed = tree.take()
+  assert.equal(changed.overlays, true)
+  assert.equal(changed.pages.size, 0)
+
+  tree.add([['r', 4]])
+  assert.equal(tree.take().overlays, true)
+  assert.deepEqual(tree.overlays(), [])
+})
+
+test('scrolling to an offset set before still scrolls', () => {
+  const tree = new Tree()
+  tree.apply([['c', 2, 'scroll'], ['i', ROOT_ID, 2, null], ['st', 2, 0, 100, false]])
+  assert.deepEqual(tree.nodes.get(2).so, [0, 100, false])
+  tree.scrolled(2, 0, 40)
+  tree.apply([['st', 2, 0, 100, false]])
+  assert.notDeepEqual(tree.nodes.get(2).so, [0, 100, false])
+  tree.apply([['sb', 2, 0, 10]])
+  assert.equal(Math.round(tree.nodes.get(2).so[1]), 110)
+})

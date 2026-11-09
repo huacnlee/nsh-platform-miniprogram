@@ -132,6 +132,11 @@ mod tests {
         assert_eq!(imports, [("nsh".to_owned(), "now_ms".to_owned())]);
         check(&imports).unwrap();
         let unknown = [("nsh".to_owned(), "vibrate".to_owned())];
-        assert!(check(&unknown).unwrap_err().to_string().contains("nsh.vibrate"));
+        assert!(
+            check(&unknown)
+                .unwrap_err()
+                .to_string()
+                .contains("nsh.vibrate")
+        );
     }
 }

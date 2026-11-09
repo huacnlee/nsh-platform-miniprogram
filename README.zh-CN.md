@@ -4,8 +4,9 @@
 
 在**微信小程序**中运行 [Native Shell](https://github.com/longbridge/nsh)（NSH）应用。
 
-> **社区维护，非 NSH 官方平台。** 本项目由社区在 NSH 仓库之外、基于 NSH 公开的平台扩展能力构建和维护。NSH 不发布、
-> 不测试也不支持它。问题和 PR 请提到这里，而不是 `longbridge/nsh`。
+> **仅用于演示，非 NSH 官方平台。** 本项目演示如何在 NSH 仓库之外、基于 NSH 公开的平台扩展能力构建一个平台。NSH 不发布、
+> 不测试也不支持它；作者也不打算长期投入维护，因为我们自己没有小程序这类场景的需求。有兴趣接手维护的，欢迎联系
+> [@huacnlee](https://github.com/huacnlee)。问题和 PR 请提到这里，而不是 `longbridge/nsh`。
 
 它同时也是 [构建平台](https://github.com/longbridge/nsh/blob/main/website/zh-CN/docs/platform-extensions.md) 一文的完整案例：
 NSH 后端的每个部分（引擎、挂载批次、文本、输入、命令行 target）在这里都有一个小而完整的实现。想把 NSH 带到其他平台，
@@ -37,6 +38,9 @@ nsh-platform-miniprogram
   src/lib.rs           Runtime：启动并驱动引擎，送回点击、滚动和尺寸变化
   src/encode.rs        每个 MountBatch → JSON 操作（["c", 2, "view"]、["f", 2, 0, 0, 100, 40]……）
   src/text.rs          基于逻辑层 canvas measureText 的 TextEngine；在引擎一侧断行
+  src/effects.rs       阴影、渐变、滤镜、变换、过渡 → CSS
+  src/anim.rs          NSH 的动画图，随小程序的帧推进；绑定的值以内联 CSS 输出
+  src/canvas.rs        canvas 的绘制 → 2D context 调用，由 nsh/canvas.js 回放
   src/ffi.rs           模块的导出（nsh_mp_*）和导入（nsh_mp.*、nsh.*）
 runtime/
   nsh/nsh-mp.js        加载 app.wasm.br（WXWebAssembly），运行定时器和帧，分发事件
@@ -52,10 +56,14 @@ nsh-platform-miniprogram-cli
 ## 状态
 
 - 支持用 **Rust** 编写的应用（`nsh.json` 的 `"rust"` 和 `"root"`）。TSX 应用需要 QuickJS，本平台暂未把它构建到 WebAssembly。
-- 已支持：视图（背景、圆角、边框、不透明度、裁剪），文本（每段文本一种样式：取第一个 span 的字体、字号、字重和颜色），
-  URL 图片，滚动视图，点击（`onPress`、`onPressIn` / `onPressOut`、`onLongPress`），浅色和深色外观，窗口尺寸变化。
-- 尚未支持：应用自带的资源文件（字体和图片），文本输入，点击以外的手势，渲染层动画，canvas，视频，web view，
-  使用系统导航栏的导航栈。
+- 已支持：视图（背景、圆角、边框、不透明度、裁剪、阴影、渐变、滤镜、背景模糊、变换、样式过渡和关键帧动画），
+  文本（每段文本一种样式：取第一个 span 的字体、字号、字重和颜色），URL 图片和应用自带的图片，canvas（在逻辑层绘制，
+  以图片显示），滚动视图（以及由应用滚动），文本输入（单行和多行：输入、提交、焦点），点击（`onPress`、
+  `onPressIn` / `onPressOut`、`onLongPress`）和按下状态（`active:`），原生动画图（弹簧、时间曲线、跟随滚动偏移的值），
+  基于小程序页面的导航栈（小程序自己的导航栏、返回按钮和返回手势），显示在顶层页面之上的模态框和底部弹层，
+  浅色和深色外观，窗口尺寸变化。
+- 尚未支持：应用自带的字体文件，点击以外的手势（拖动、捏合），下拉刷新，列表的吸顶单元格，canvas 上的图片，
+  一段文本中的多种样式，视频，web view。
 
 欢迎为以上任何一项提交 PR。
 
