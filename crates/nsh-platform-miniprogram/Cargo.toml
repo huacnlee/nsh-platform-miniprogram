@@ -1,0 +1,16 @@
+[package]
+name = "nsh-platform-miniprogram"
+description = "A community-maintained NSH platform: runs Native Shell apps in WeChat Mini Programs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+nsh-core.workspace = true
+nsh-engine.workspace = true
+log.workspace = true
+serde_json.workspace = true

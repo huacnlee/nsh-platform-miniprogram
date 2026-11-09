@@ -1,0 +1,8 @@
+{
+  "name": "Counter",
+  "id": "com.example.counter",
+  "version": "1.0.0",
+  "build": 1,
+  "rust": ".",
+  "root": "App"
+}

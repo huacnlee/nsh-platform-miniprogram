@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/huacnlee/nsh-platform-miniprogram"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unreachable_pub = "deny"
+
+[workspace.dependencies]
+nsh-core = "0.4"
+nsh-engine = { version = "0.4", default-features = false }
+anyhow = "1"
+brotli = "8"
+log = "0.4"
+serde_json = "1"
+
+# NSH's crates as the platform needs them: `Os::External` and the external
+# target protocol are in longbridge/nsh#1393 and not in a release yet. Remove the
+# patch once a release has them.
+[patch.crates-io]
+nsh-core = { git = "https://github.com/longbridge/nsh", branch = "core/third-party-platforms" }
+nsh-engine = { git = "https://github.com/longbridge/nsh", branch = "core/third-party-platforms" }

@@ -1,0 +1,21 @@
+[package]
+name = "nsh-app-counter"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+nsh-core = { git = "https://github.com/longbridge/nsh", branch = "core/third-party-platforms" }
+nsh-base = { git = "https://github.com/longbridge/nsh", branch = "core/third-party-platforms" }
+env_logger = "0.11"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nsh-platform-linux = { git = "https://github.com/longbridge/nsh", branch = "core/third-party-platforms", default-features = false, features = ["shader", "editor", "emoji-picker", "highlight", "math", "plot", "rich-editor", "term"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+nsh-platform-macos = { git = "https://github.com/longbridge/nsh", branch = "core/third-party-platforms", default-features = false, features = ["shader", "editor", "emoji-picker", "highlight", "math", "plot", "rich-editor", "term"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+nsh-platform-windows = { git = "https://github.com/longbridge/nsh", branch = "core/third-party-platforms", default-features = false, features = ["shader", "editor", "emoji-picker", "highlight", "math", "plot", "rich-editor", "term"] }

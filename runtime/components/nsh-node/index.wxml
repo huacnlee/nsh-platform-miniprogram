@@ -1,0 +1,42 @@
+<!-- What the frame, decoration and text of a node look like; its children
+     follow in drawing order. Handlers are bound only where the node takes
+     the event, so a tap reaches the innermost view that takes presses. -->
+<scroll-view
+  wx:if="{{node.k === 'scroll'}}"
+  class="n"
+  style="left:{{node.f[0]}}px;top:{{node.f[1]}}px;width:{{node.f[2]}}px;height:{{node.f[3]}}px;{{node.s}}"
+  scroll-x="{{node.h}}"
+  scroll-y="{{!node.h}}"
+  bindscroll="onScroll"
+>
+  <view class="content" style="width:{{node.cs ? node.cs[0] : node.f[2]}}px;height:{{node.cs ? node.cs[1] : node.f[3]}}px">
+    <nsh-node wx:for="{{node.c}}" wx:key="id" node="{{item}}" bind:nsh="onChild" />
+  </view>
+</scroll-view>
+<image
+  wx:elif="{{node.k === 'image'}}"
+  class="n"
+  style="left:{{node.f[0]}}px;top:{{node.f[1]}}px;width:{{node.f[2]}}px;height:{{node.f[3]}}px;{{node.s}}"
+  src="{{node.im ? node.im.src : ''}}"
+  mode="{{node.im ? node.im.mode : 'aspectFill'}}"
+  catchtap="{{node.p ? 'onTap' : ''}}"
+/>
+<view
+  wx:else
+  class="n"
+  style="left:{{node.f[0]}}px;top:{{node.f[1]}}px;width:{{node.f[2]}}px;height:{{node.f[3]}}px;{{node.s}}"
+  catchtap="{{node.p ? 'onTap' : ''}}"
+  catchlongpress="{{node.lp ? 'onLongPress' : ''}}"
+  bindtouchstart="{{node.io ? 'onTouchStart' : ''}}"
+  bindtouchend="{{node.io ? 'onTouchEnd' : ''}}"
+  bindtouchcancel="{{node.io ? 'onTouchEnd' : ''}}"
+>
+  <text
+    wx:for="{{node.t ? node.t.lines : []}}"
+    wx:for-item="line"
+    wx:key="index"
+    class="line"
+    style="left:{{node.t.x + line[1]}}px;top:{{node.t.y + line[2]}}px;font:{{node.t.font}};line-height:{{node.t.lineHeight}}px;color:{{node.t.color}}"
+  >{{line[0]}}</text>
+  <nsh-node wx:for="{{node.c}}" wx:key="id" node="{{item}}" bind:nsh="onChild" />
+</view>

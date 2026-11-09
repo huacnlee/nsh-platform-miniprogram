@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Rust tests
+        run: cargo test --workspace
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets
+      - name: The backend builds for WebAssembly
+        run: cargo build -p nsh-platform-miniprogram --target wasm32-unknown-unknown --release
+      - name: Runtime tests
+        run: node --test 'runtime/test/*.test.js'
