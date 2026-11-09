@@ -59,7 +59,14 @@ function wxHost() {
     device() {
       const info = wx.getWindowInfo()
       const theme = wx.getAppBaseInfo ? wx.getAppBaseInfo().theme : 'light'
-      return { width: info.windowWidth, height: info.windowHeight, pixelRatio: info.pixelRatio, dark: theme === 'dark' }
+      const device = wx.getDeviceInfo ? wx.getDeviceInfo() : {}
+      return {
+        width: info.windowWidth,
+        height: info.windowHeight,
+        pixelRatio: info.pixelRatio,
+        dark: theme === 'dark',
+        os: osOf(device.platform, device.system),
+      }
     },
     onThemeChange: (f) => wx.onThemeChange && wx.onThemeChange(f),
     onResize: (f) => wx.onWindowResize && wx.onWindowResize(f),
@@ -70,6 +77,23 @@ function wxHost() {
     log: (level, message) => (level <= 2 ? console.warn(message) : console.log(message)),
   }
 }
+
+/**
+ * NSH's OS of `wx.getDeviceInfo()`'s `platform` (`ios`, `android`, `mac`,
+ * `windows`, `ohos`, ...; `devtools` in WeChat DevTools, whose `system`
+ * names the simulated device's, `"iOS 17.0"`).
+ */
+function osOf(platform = '', system = '') {
+  const name = platform === 'devtools' ? system.split(' ')[0].toLowerCase() : platform
+  if (name === 'android' || name === 'ohos') return 'android'
+  if (name === 'mac' || name === 'macos') return 'macos'
+  if (name === 'windows') return 'windows'
+  if (name === 'linux') return 'linux'
+  return 'ios'
+}
+
+/** The code of an OS for the module (`ffi.rs`, `os_of`). */
+const OS_CODES = { ios: 0, android: 1, macos: 2, windows: 3, linux: 4 }
 
 /** Seconds east of UTC of local time at `ms` (NSH's `local_offset`). */
 function localOffset(ms) {
@@ -131,7 +155,7 @@ function start(page, host = wxHost(), path = WASM_PATH) {
   }
   const device = () => {
     const d = host.device()
-    return [d.width, d.height, d.pixelRatio, d.dark ? 1 : 0]
+    return [d.width, d.height, d.pixelRatio, d.dark ? 1 : 0, OS_CODES[d.os] ?? 0]
   }
   return host.instantiate(path, imports).then((result) => {
     exports = (result.instance || result).exports
@@ -159,4 +183,4 @@ function start(page, host = wxHost(), path = WASM_PATH) {
   })
 }
 
-module.exports = { start, utf8Decode, utf8Encode }
+module.exports = { start, osOf, utf8Decode, utf8Encode }

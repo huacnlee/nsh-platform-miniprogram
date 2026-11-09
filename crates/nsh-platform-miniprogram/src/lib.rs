@@ -18,8 +18,10 @@
 //! - Taps come back as `onPress` / `onPressIn` / `onPressOut` events, and
 //!   scroll views report their offsets, through [`EngineControl`].
 //!
-//! The platform reports `platform.os` as `"miniprogram"`
-//! ([`Os::External`]), a phone ([`Idiom::Phone`]).
+//! The platform names itself `"miniprogram"` (`platform.name`,
+//! [`Environment::platform`]) and reports the OS of the device WeChat
+//! runs on in `platform.os` (iOS, Android, or a desktop OS in WeChat for
+//! PC), a phone ([`Idiom::Phone`]).
 //!
 //! A runner crate (the CLI writes it) starts an app with [`app!`] and links
 //! this crate for `wasm32-unknown-unknown`, where [`ffi`] exports the
@@ -44,9 +46,9 @@ use serde_json::Value;
 
 use crate::text::{Measure, MiniProgramTextEngine};
 
-/// The name this platform reports in `platform.os` and is selected with
+/// The name this platform reports in `platform.name` and is selected with
 /// (`nsh run --target miniprogram`).
-pub const OS_NAME: &str = "miniprogram";
+pub const PLATFORM_NAME: &str = "miniprogram";
 
 /// What the Mini Program reports about the device at start
 /// (`wx.getWindowInfo()`, `wx.getAppBaseInfo()`).
@@ -60,6 +62,8 @@ pub struct Device {
     pub pixel_ratio: f32,
     /// The system shows dark mode.
     pub dark: bool,
+    /// The OS WeChat runs on (`wx.getDeviceInfo().platform`).
+    pub os: Os,
 }
 
 impl Default for Device {
@@ -69,6 +73,7 @@ impl Default for Device {
             height: 667.0,
             pixel_ratio: 2.0,
             dark: false,
+            os: Os::Ios,
         }
     }
 }
@@ -83,7 +88,8 @@ impl Device {
                 false => ColorScheme::Light,
             },
             pixel_ratio: self.pixel_ratio,
-            os: Os::External(OS_NAME),
+            os: self.os,
+            platform: Some(PLATFORM_NAME),
             idiom: Idiom::Phone,
             ..Environment::default()
         }
@@ -314,7 +320,11 @@ mod tests {
     #[test]
     fn the_platform_reports_its_own_name() {
         let environment = Device::default().environment();
-        assert_eq!(environment.os.name(), "miniprogram");
+        assert_eq!(environment.platform_name(), "miniprogram");
+        assert_eq!(environment.os, Os::Ios);
         assert!(!environment.desktop());
+        let android = Device { os: Os::Android, ..Device::default() }.environment();
+        assert_eq!(android.os.name(), "android");
+        assert_eq!(android.platform_name(), "miniprogram");
     }
 }

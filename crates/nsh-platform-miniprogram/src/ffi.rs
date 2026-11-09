@@ -52,6 +52,19 @@ thread_local! {
     static RUNTIME: RefCell<Option<Runtime<HostMeasure>>> = const { RefCell::new(None) };
 }
 
+/// The OS `nsh-mp.js` passes: 0 iOS, 1 Android, 2 macOS, 3 Windows,
+/// 4 Linux (`osCode` there).
+fn os_of(code: u32) -> nsh_core::platform::Os {
+    use nsh_core::platform::Os;
+    match code {
+        1 => Os::Android,
+        2 => Os::MacOs,
+        3 => Os::Windows,
+        4 => Os::Linux,
+        _ => Os::Ios,
+    }
+}
+
 /// Sets the app [`nsh_mp_start`] starts ([`crate::app!`]).
 pub fn set_app(make: impl Fn() -> (Vec<Registry>, Root) + 'static) {
     APP.with(|a| *a.borrow_mut() = Some(Box::new(make)));
@@ -130,7 +143,13 @@ pub unsafe extern "C" fn nsh_mp_free(ptr: *mut u8, len: usize) {
 
 /// Starts the app on a page `width` × `height` px; 1 if it started.
 #[unsafe(no_mangle)]
-pub extern "C" fn nsh_mp_start(width: f32, height: f32, pixel_ratio: f32, dark: u32) -> u32 {
+pub extern "C" fn nsh_mp_start(
+    width: f32,
+    height: f32,
+    pixel_ratio: f32,
+    dark: u32,
+    os: u32,
+) -> u32 {
     static INIT: std::sync::Once = std::sync::Once::new();
     INIT.call_once(|| {
         let _ = log::set_logger(&LOGGER);
@@ -146,6 +165,7 @@ pub extern "C" fn nsh_mp_start(width: f32, height: f32, pixel_ratio: f32, dark: 
         height,
         pixel_ratio,
         dark: dark != 0,
+        os: os_of(os),
     };
     let Some(runtime) = Runtime::start(root, sets, device, HostMeasure) else {
         return 0;
@@ -189,12 +209,13 @@ pub extern "C" fn nsh_mp_scroll(id: u32, x: f32, y: f32) {
 
 /// The page's size or appearance changed.
 #[unsafe(no_mangle)]
-pub extern "C" fn nsh_mp_device(width: f32, height: f32, pixel_ratio: f32, dark: u32) {
+pub extern "C" fn nsh_mp_device(width: f32, height: f32, pixel_ratio: f32, dark: u32, os: u32) {
     let device = Device {
         width,
         height,
         pixel_ratio,
         dark: dark != 0,
+        os: os_of(os),
     };
     with_runtime(|r| r.set_device(device));
 }

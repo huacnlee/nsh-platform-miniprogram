@@ -26,7 +26,7 @@ nsh run my-app --target miniprogram                  # 构建并在微信开发�
 wechatwebdevtools`）打开；`--appid <id>` 设置项目的 AppID（默认是测试号）。`nsh run` 通过开发者工具的命令行打开项目，
 需要先开启 **设置 → 安全设置 → 服务端口**。
 
-在应用中，平台是 `platform.os === "miniprogram"`（TSX）或 `os().name() == "miniprogram"`（Rust）。
+在应用中，平台是 `platform.name === "miniprogram"`（TSX）或 `platform_name() == "miniprogram"`（Rust）；`platform.os` 是微信所在手机的系统（`"ios"` 或 `"android"`）。
 
 ## 工作原理
 

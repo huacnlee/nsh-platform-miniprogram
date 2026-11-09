@@ -27,7 +27,7 @@ nsh run my-app --target miniprogram                  # builds it and opens it in
 wechatwebdevtools`); `--appid <id>` sets the project's AppID (the default is a test AppID). `nsh run` opens it through
 DevTools' command line, which needs **Settings → Security → Service port** turned on.
 
-In the app, the platform is `platform.os === "miniprogram"` (TSX) or `os().name() == "miniprogram"` (Rust).
+In the app, the platform is `platform.name === "miniprogram"` (TSX) or `platform_name() == "miniprogram"` (Rust); `platform.os` is the OS of the phone WeChat runs on (`"ios"` or `"android"`).
 
 ## How it works
 
