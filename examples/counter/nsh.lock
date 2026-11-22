@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "packages": [
+    {
+      "name": "nsh-platform-miniprogram",
+      "version": "0.1.0",
+      "path": "../..",
+      "platform": "miniprogram"
+    }
+  ]
+}

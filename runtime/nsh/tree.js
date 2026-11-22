@@ -1,6 +1,6 @@
 // The tree of views the render layer draws, kept in the logic layer as
 // plain objects, and the `setData` paths that bring the render layer up to
-// date after each batch of operations (`crates/nsh-platform-miniprogram/
+// date after each batch of operations (`crates/nsh-miniprogram/
 // src/encode.rs` lists them).
 //
 // A node is `{ id, k, f, s, p, io, t, h, cs, im, c }`: its kind, frame

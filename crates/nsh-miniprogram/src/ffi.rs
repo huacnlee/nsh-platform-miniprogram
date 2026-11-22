@@ -160,7 +160,7 @@ pub extern "C" fn nsh_mp_start(
         }));
     });
     let Some((sets, root)) = APP.with(|a| a.borrow().as_ref().map(|make| make())) else {
-        report_error("this module has no app: its runner calls `nsh_platform_miniprogram::app!`");
+        report_error("this module has no app: its runner calls `nsh_miniprogram::app!`");
         return 0;
     };
     let device = Device {

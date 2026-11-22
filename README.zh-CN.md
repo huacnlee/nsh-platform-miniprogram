@@ -14,15 +14,26 @@ NSH 后端的每个部分（引擎、挂载批次、文本、输入、命令行 
 
 ## 使用
 
-```sh
-cargo install --git https://github.com/huacnlee/nsh-platform-miniprogram nsh-platform-miniprogram-cli
-rustup target add wasm32-unknown-unknown
+本平台是一个 [nshm](https://github.com/longbridge/nsh/blob/main/website/zh-CN/docs/nshm.md)，跟随 NSH nightly：先安装
+nightly 版 `nsh`（`nsh update nightly`），再把平台加入应用：
 
-nsh package my-app --target miniprogram --out dist   # 生成小程序项目
-nsh run my-app --target miniprogram                  # 构建并在微信开发者工具中打开
+```sh
+rustup target add wasm32-unknown-unknown
+cd my-app
+nsh add github:huacnlee/nsh-platform-miniprogram   # 写入 nsh.json 的 "dependencies"，并由 nsh.lock 锁定
+
+nsh package --target miniprogram --out dist         # 生成小程序项目
+nsh run --target miniprogram                        # 构建并在微信开发者工具中打开
 ```
 
-`--target miniprogram` 时，`nsh` 会运行 `PATH` 上的 `nsh-platform-miniprogram`。生成的项目用
+之后 `nsh.json` 中会有：
+
+```json
+{ "dependencies": { "nsh-platform-miniprogram": { "github": "huacnlee/nsh-platform-miniprogram" } } }
+```
+
+`--target miniprogram` 时，`nsh` 在应用的 `.nsh/platforms/miniprogram` 中构建平台的二进制 `nsh-platform-miniprogram`
+并运行它。应用本身不链接这个平台，原来是 TSX 还是 Rust 应用都不变。生成的项目用
 [微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)（`brew install --cask
 wechatwebdevtools`）打开；`--appid <id>` 设置项目的 AppID（默认是测试号）。`nsh run` 通过开发者工具的命令行打开项目，
 需要先开启 **设置 → 安全设置 → 服务端口**。
@@ -34,7 +45,7 @@ wechatwebdevtools`）打开；`--appid <id>` 设置项目的 AppID（默认是�
 ```
 你的应用（Rust）         组件、布局、状态
 nsh-engine             LocalEngine，以 WebAssembly 运行在小程序逻辑层
-nsh-platform-miniprogram
+crates/nsh-miniprogram
   src/lib.rs           Runtime：启动并驱动引擎，送回点击、滚动和尺寸变化
   src/encode.rs        每个 MountBatch → JSON 操作（["c", 2, "view"]、["f", 2, 0, 0, 100, 40]……）
   src/text.rs          基于逻辑层 canvas measureText 的 TextEngine；在引擎一侧把多样式的文本断成行
@@ -46,7 +57,7 @@ runtime/
   nsh/nsh-mp.js        加载 app.wasm.br（WXWebAssembly），运行定时器和帧，分发事件
   nsh/tree.js          视图树（普通对象）；每个批次变成最少的 setData 路径
   components/nsh-node  递归组件：每个视图绝对定位在 NSH 布局好的 frame 上
-nsh-platform-miniprogram-cli
+src/（nshm，二进制 nsh-platform-miniprogram）
   package / run        `$NSH build <app>`，基于 NSH 生成的 `nsh_rust_app` 写出 cdylib runner，按体积优化构建到
                        wasm32，检查导入，写出项目，模块用 brotli 压缩
 ```
@@ -86,7 +97,7 @@ nsh-platform-miniprogram-cli
 NSH 版本；在 WebAssembly 中，NSH 的 crate 会从宿主导入几个函数（`nsh.now_ms`、`nsh.date_now_ms`、`nsh.local_offset`），
 新版 NSH 需要运行时未提供的导入时，`package` 会报错。
 
-在 NSH 发布平台扩展能力（longbridge/nsh#1393）之前，本仓库从该分支获取 NSH 的 crate（`Cargo.toml` 中的 `[patch.crates-io]`）。
+本仓库跟随 NSH nightly：NSH 的 crate 取自 `longbridge/nsh` 的 `main`（`Cargo.toml`），即 nightly 版 `nsh` 的构建来源；CI 用 nightly 版 `nsh` 打包示例。
 
 ## 开发
 
@@ -95,8 +106,8 @@ cargo test --workspace                       # 后端（在 LocalEngine 上运�
 node --test 'runtime/test/*.test.js'         # 运行时的视图树
 
 # 完整应用：打包计数器，再在 Node 上通过真实运行时运行它的真实模块
-cargo build -p nsh-platform-miniprogram-cli
-PATH=$PWD/target/debug:$PATH nsh package examples/counter --target miniprogram --out /tmp/mp-counter
+# （examples/counter 从本仓库取平台："dependencies" → { "path": "../.." }）
+nsh package examples/counter --target miniprogram --out /tmp/mp-counter
 NSH_MP_PROJECT=/tmp/mp-counter node --test 'runtime/test/*.test.js'
 ```
 

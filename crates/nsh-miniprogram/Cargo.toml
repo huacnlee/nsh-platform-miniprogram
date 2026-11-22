@@ -1,5 +1,5 @@
 [package]
-name = "nsh-platform-miniprogram"
+name = "nsh-miniprogram"
 description = "A community-maintained NSH platform: runs Native Shell apps in WeChat Mini Programs."
 version.workspace = true
 edition.workspace = true

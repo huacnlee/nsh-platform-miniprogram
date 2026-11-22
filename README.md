@@ -16,15 +16,27 @@ small, complete form. Read this repository alongside that page if you want to br
 
 ## Usage
 
-```sh
-cargo install --git https://github.com/huacnlee/nsh-platform-miniprogram nsh-platform-miniprogram-cli
-rustup target add wasm32-unknown-unknown
+The platform is an [nshm](https://github.com/longbridge/nsh/blob/main/website/docs/nshm.md#platform-nshm) and
+follows NSH nightly: install the nightly `nsh` (`nsh update nightly`), then add the platform to the app:
 
-nsh package my-app --target miniprogram --out dist   # writes a Mini Program project
-nsh run my-app --target miniprogram                  # builds it and opens it in WeChat DevTools
+```sh
+rustup target add wasm32-unknown-unknown
+cd my-app
+nsh add github:huacnlee/nsh-platform-miniprogram   # "dependencies" in nsh.json, pinned in nsh.lock
+
+nsh package --target miniprogram --out dist         # writes a Mini Program project
+nsh run --target miniprogram                        # builds it and opens it in WeChat DevTools
 ```
 
-`nsh` runs `nsh-platform-miniprogram` from your `PATH` for `--target miniprogram`. The project it writes opens in
+`nsh.json` then has:
+
+```json
+{ "dependencies": { "nsh-platform-miniprogram": { "github": "huacnlee/nsh-platform-miniprogram" } } }
+```
+
+For `--target miniprogram`, `nsh` builds the platform's binary `nsh-platform-miniprogram` in the app's
+`.nsh/platforms/miniprogram` and runs it. The app is not linked with the platform: it stays a TSX or Rust app as it
+was. The project it writes opens in
 [WeChat DevTools](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html) (`brew install --cask
 wechatwebdevtools`); `--appid <id>` sets the project's AppID (the default is a test AppID). `nsh run` opens it through
 DevTools' command line, which needs **Settings → Security → Service port** turned on.
@@ -36,7 +48,7 @@ In the app, the platform is `platform.name === "miniprogram"` (TSX) or `platform
 ```
 your app (Rust)        components, layout, state
 nsh-engine             LocalEngine, in WebAssembly in the Mini Program's logic layer
-nsh-platform-miniprogram
+crates/nsh-miniprogram
   src/lib.rs           Runtime: starts the engine, pumps it, sends taps, scrolls and size changes
   src/encode.rs        each MountBatch → JSON operations (["c", 2, "view"], ["f", 2, 0, 0, 100, 40], ...)
   src/text.rs          a TextEngine on the logic layer's canvas measureText; lines of styled runs broken on the engine's side
@@ -48,7 +60,7 @@ runtime/
   nsh/nsh-mp.js        loads app.wasm.br (WXWebAssembly), runs timers and frames, routes events
   nsh/tree.js          the views as a tree of plain objects; each batch becomes the fewest setData paths
   components/nsh-node  a recursive component: each view absolutely positioned at the frame NSH laid out
-nsh-platform-miniprogram-cli
+src/ (the nshm, binary nsh-platform-miniprogram)
   package / run        `$NSH build <app>`, a cdylib runner on NSH's generated `nsh_rust_app`, built for
                        wasm32 for size, imports checked, the project written with the module brotli-compressed
 ```
@@ -93,8 +105,8 @@ with each release. Each release of this platform names the NSH version it suppor
 a few functions from their host (`nsh.now_ms`, `nsh.date_now_ms`, `nsh.local_offset`), and `package` fails when a
 newer NSH asks for one the runtime does not provide.
 
-Until NSH releases the platform extension points (longbridge/nsh#1393), this repository takes NSH's crates from that
-branch (`[patch.crates-io]` in `Cargo.toml`).
+This repository follows NSH nightly: its NSH crates come from `longbridge/nsh`'s `main` (`Cargo.toml`), the branch
+the nightly `nsh` is built from, and CI packages the example with the nightly `nsh`.
 
 ## Development
 
@@ -103,8 +115,8 @@ cargo test --workspace                       # the backend (a counter on a Local
 node --test 'runtime/test/*.test.js'         # the runtime's tree
 
 # the whole app: package the counter, then run its real module on Node through the real runtime
-cargo build -p nsh-platform-miniprogram-cli
-PATH=$PWD/target/debug:$PATH nsh package examples/counter --target miniprogram --out /tmp/mp-counter
+# (examples/counter takes the platform from this checkout: "dependencies" → { "path": "../.." })
+nsh package examples/counter --target miniprogram --out /tmp/mp-counter
 NSH_MP_PROJECT=/tmp/mp-counter node --test 'runtime/test/*.test.js'
 ```
 
