@@ -30,6 +30,8 @@ jobs:
         run: cargo build -p nsh-miniprogram --target wasm32-unknown-unknown --release
       - name: Runtime tests
         run: node --test 'runtime/test/*.test.js'
+      - name: Install GTK for the NSH development host
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev
       - name: Install NSH nightly
         run: |
           mkdir -p "$RUNNER_TEMP/nsh"
