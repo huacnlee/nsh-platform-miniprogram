@@ -10,48 +10,48 @@ use serde_json::json;
 
 /// The runtime's files, by their path in the project.
 const RUNTIME: &[(&str, &str)] = &[
-    ("app.js", include_str!("../../../runtime/app.js")),
-    ("app.wxss", include_str!("../../../runtime/app.wxss")),
+    ("app.js", include_str!("../runtime/app.js")),
+    ("app.wxss", include_str!("../runtime/app.wxss")),
     (
         "nsh/nsh-mp.js",
-        include_str!("../../../runtime/nsh/nsh-mp.js"),
+        include_str!("../runtime/nsh/nsh-mp.js"),
     ),
-    ("nsh/tree.js", include_str!("../../../runtime/nsh/tree.js")),
+    ("nsh/tree.js", include_str!("../runtime/nsh/tree.js")),
     (
         "nsh/canvas.js",
-        include_str!("../../../runtime/nsh/canvas.js"),
+        include_str!("../runtime/nsh/canvas.js"),
     ),
     (
         "pages/index/index.js",
-        include_str!("../../../runtime/pages/index/index.js"),
+        include_str!("../runtime/pages/index/index.js"),
     ),
     (
         "pages/index/index.json",
-        include_str!("../../../runtime/pages/index/index.json"),
+        include_str!("../runtime/pages/index/index.json"),
     ),
     (
         "pages/index/index.wxml",
-        include_str!("../../../runtime/pages/index/index.wxml"),
+        include_str!("../runtime/pages/index/index.wxml"),
     ),
     (
         "pages/index/index.wxss",
-        include_str!("../../../runtime/pages/index/index.wxss"),
+        include_str!("../runtime/pages/index/index.wxss"),
     ),
     (
         "components/nsh-node/index.js",
-        include_str!("../../../runtime/components/nsh-node/index.js"),
+        include_str!("../runtime/components/nsh-node/index.js"),
     ),
     (
         "components/nsh-node/index.json",
-        include_str!("../../../runtime/components/nsh-node/index.json"),
+        include_str!("../runtime/components/nsh-node/index.json"),
     ),
     (
         "components/nsh-node/index.wxml",
-        include_str!("../../../runtime/components/nsh-node/index.wxml"),
+        include_str!("../runtime/components/nsh-node/index.wxml"),
     ),
     (
         "components/nsh-node/index.wxss",
-        include_str!("../../../runtime/components/nsh-node/index.wxss"),
+        include_str!("../runtime/components/nsh-node/index.wxss"),
     ),
 ];
 

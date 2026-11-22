@@ -27,6 +27,24 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets
       - name: The backend builds for WebAssembly
-        run: cargo build -p nsh-platform-miniprogram --target wasm32-unknown-unknown --release
+        run: cargo build -p nsh-miniprogram --target wasm32-unknown-unknown --release
       - name: Runtime tests
         run: node --test 'runtime/test/*.test.js'
+      - name: Install GTK for the NSH development host
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev
+      - name: Install NSH nightly
+        run: |
+          mkdir -p "$RUNNER_TEMP/nsh"
+          curl -fsSL https://github.com/longbridge/nsh/releases/download/nightly/nsh-linux-x86_64.tar.gz \
+            | tar -xz -C "$RUNNER_TEMP/nsh"
+          echo "$(dirname "$(find "$RUNNER_TEMP/nsh" -type f -name nsh | head -n1)")" >> "$GITHUB_PATH"
+      - name: Package the counter with this checkout's platform
+        run: |
+          cargo install --path . --locked
+          nsh --version
+          # A Git pin of NSH must name the revision the nsh CLI is built from.
+          commit=$(curl -fsSL https://github.com/longbridge/nsh/releases/download/nightly/nsh-release.json | jq -r .commit)
+          cargo update --manifest-path examples/counter/Cargo.toml -p nsh-core --precise "$commit"
+          nsh package examples/counter --target miniprogram --out "$RUNNER_TEMP/mp-counter"
+      - name: Run the packaged module through the runtime
+        run: NSH_MP_PROJECT="$RUNNER_TEMP/mp-counter" node --test 'runtime/test/*.test.js'
