@@ -115,7 +115,8 @@ cargo test --workspace                       # the backend (a counter on a Local
 node --test 'runtime/test/*.test.js'         # the runtime's tree
 
 # the whole app: package the counter, then run its real module on Node through the real runtime
-# (examples/counter takes the platform from this checkout: "dependencies" → { "path": "../.." })
+# (install this checkout's platform binary on PATH first; nsh runs it for --target miniprogram)
+cargo install --path . --locked
 nsh package examples/counter --target miniprogram --out /tmp/mp-counter
 NSH_MP_PROJECT=/tmp/mp-counter node --test 'runtime/test/*.test.js'
 ```

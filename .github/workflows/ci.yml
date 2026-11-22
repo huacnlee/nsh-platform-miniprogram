@@ -36,8 +36,9 @@ jobs:
           curl -fsSL https://github.com/longbridge/nsh/releases/download/nightly/nsh-linux-x86_64.tar.gz \
             | tar -xz -C "$RUNNER_TEMP/nsh"
           echo "$(dirname "$(find "$RUNNER_TEMP/nsh" -type f -name nsh | head -n1)")" >> "$GITHUB_PATH"
-      - name: Package the counter with the platform nshm
+      - name: Package the counter with this checkout's platform
         run: |
+          cargo install --path . --locked
           nsh --version
           # A Git pin of NSH must name the revision the nsh CLI is built from.
           commit=$(curl -fsSL https://github.com/longbridge/nsh/releases/download/nightly/nsh-release.json | jq -r .commit)
