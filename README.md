@@ -1,5 +1,8 @@
 # nsh-platform-miniprogram
 
+[![crates.io](https://img.shields.io/crates/v/nsh-platform-miniprogram.svg)](https://crates.io/crates/nsh-platform-miniprogram)
+[![docs.rs](https://img.shields.io/docsrs/nsh-platform-miniprogram)](https://docs.rs/nsh-platform-miniprogram)
+
 [中文](README.zh-CN.md)
 
 Run [Native Shell](https://github.com/longbridge/nsh) (NSH) apps in **WeChat Mini Programs** (微信小程序).
@@ -40,6 +43,21 @@ was. The project it writes opens in
 [WeChat DevTools](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html) (`brew install --cask
 wechatwebdevtools`); `--appid <id>` sets the project's AppID (the default is a test AppID). `nsh run` opens it through
 DevTools' command line, which needs **Settings → Security → Service port** turned on.
+
+### From crates.io
+
+The platform is also published as the crate
+[`nsh-platform-miniprogram`](https://crates.io/crates/nsh-platform-miniprogram): one crate whose binary is the CLI
+`nsh` runs and whose library is the backend linked into the app's module. Without the nshm, install the binary on
+`PATH`, where `nsh` finds it for `--target miniprogram`:
+
+```sh
+cargo install nsh-platform-miniprogram
+nsh package --target miniprogram --out dist
+```
+
+The published crate builds on NSH's crates from crates.io (`nsh-core` / `nsh-engine` 0.6), so pair it with the
+matching release of `nsh`; the repository itself follows NSH nightly.
 
 In the app, the platform is `platform.name === "miniprogram"` (TSX) or `platform_name() == "miniprogram"` (Rust); `platform.os` is the OS of the phone WeChat runs on (`"ios"` or `"android"`).
 

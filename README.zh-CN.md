@@ -1,5 +1,8 @@
 # nsh-platform-miniprogram
 
+[![crates.io](https://img.shields.io/crates/v/nsh-platform-miniprogram.svg)](https://crates.io/crates/nsh-platform-miniprogram)
+[![docs.rs](https://img.shields.io/docsrs/nsh-platform-miniprogram)](https://docs.rs/nsh-platform-miniprogram)
+
 [English](README.md)
 
 在**微信小程序**中运行 [Native Shell](https://github.com/longbridge/nsh)（NSH）应用。
@@ -37,6 +40,20 @@ nsh run --target miniprogram                        # 构建并在微信开发�
 [微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)（`brew install --cask
 wechatwebdevtools`）打开；`--appid <id>` 设置项目的 AppID（默认是测试号）。`nsh run` 通过开发者工具的命令行打开项目，
 需要先开启 **设置 → 安全设置 → 服务端口**。
+
+### 从 crates.io 安装
+
+本平台也以 crate [`nsh-platform-miniprogram`](https://crates.io/crates/nsh-platform-miniprogram) 发布：同一个 crate
+的二进制是 `nsh` 调用的 CLI，库是链接进应用模块的后端。不用 nshm 时，把二进制安装到 `PATH`，`nsh` 在
+`--target miniprogram` 时会找到它：
+
+```sh
+cargo install nsh-platform-miniprogram
+nsh package --target miniprogram --out dist
+```
+
+发布的 crate 使用 crates.io 上的 NSH crate（`nsh-core` / `nsh-engine` 0.6），请搭配对应发布版的 `nsh`；本仓库本身跟随
+NSH nightly。
 
 在应用中，平台是 `platform.name === "miniprogram"`（TSX）或 `platform_name() == "miniprogram"`（Rust）；`platform.os` 是微信所在手机的系统（`"ios"` 或 `"android"`）。
 
