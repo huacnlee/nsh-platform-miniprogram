@@ -19,13 +19,14 @@ small, complete form. Read this repository alongside that page if you want to br
 
 ## Usage
 
-The platform is an [nshm](https://github.com/longbridge/nsh/blob/main/website/docs/nshm.md#platform-nshm) and
-follows NSH nightly: install the nightly `nsh` (`nsh update nightly`), then add the platform to the app:
+The platform is a [platform nshm](https://github.com/longbridge/nsh/blob/main/website/docs/nshm.md#platform-nshm),
+published on crates.io as [`nsh-platform-miniprogram`](https://crates.io/crates/nsh-platform-miniprogram). Add it to
+the app:
 
 ```sh
 rustup target add wasm32-unknown-unknown
 cd my-app
-nsh add github:huacnlee/nsh-platform-miniprogram   # "dependencies" in nsh.json, pinned in nsh.lock
+nsh add nsh-platform-miniprogram                    # "dependencies" in nsh.json, pinned in nsh.lock
 
 nsh package --target miniprogram --out dist         # writes a Mini Program project
 nsh run --target miniprogram                        # builds it and opens it in WeChat DevTools
@@ -34,7 +35,7 @@ nsh run --target miniprogram                        # builds it and opens it in 
 `nsh.json` then has:
 
 ```json
-{ "dependencies": { "nsh-platform-miniprogram": { "github": "huacnlee/nsh-platform-miniprogram" } } }
+{ "dependencies": { "nsh-platform-miniprogram": "^0.1.0" } }
 ```
 
 For `--target miniprogram`, `nsh` builds the platform's binary `nsh-platform-miniprogram` in the app's
@@ -44,20 +45,8 @@ was. The project it writes opens in
 wechatwebdevtools`); `--appid <id>` sets the project's AppID (the default is a test AppID). `nsh run` opens it through
 DevTools' command line, which needs **Settings → Security → Service port** turned on.
 
-### From crates.io
-
-The platform is also published as the crate
-[`nsh-platform-miniprogram`](https://crates.io/crates/nsh-platform-miniprogram): one crate whose binary is the CLI
-`nsh` runs and whose library is the backend linked into the app's module. Without the nshm, install the binary on
-`PATH`, where `nsh` finds it for `--target miniprogram`:
-
-```sh
-cargo install nsh-platform-miniprogram
-nsh package --target miniprogram --out dist
-```
-
-The published crate builds on NSH's crates from crates.io (`nsh-core` / `nsh-engine` 0.6), so pair it with the
-matching release of `nsh`; the repository itself follows NSH nightly.
+To follow this repository's `main` (which tracks NSH nightly) instead of a release, add it from GitHub:
+`nsh add github:huacnlee/nsh-platform-miniprogram`.
 
 In the app, the platform is `platform.name === "miniprogram"` (TSX) or `platform_name() == "miniprogram"` (Rust); `platform.os` is the OS of the phone WeChat runs on (`"ios"` or `"android"`).
 

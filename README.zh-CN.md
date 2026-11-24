@@ -17,13 +17,13 @@ NSH 后端的每个部分（引擎、挂载批次、文本、输入、命令行 
 
 ## 使用
 
-本平台是一个 [nshm](https://github.com/longbridge/nsh/blob/main/website/zh-CN/docs/nshm.md)，跟随 NSH nightly：先安装
-nightly 版 `nsh`（`nsh update nightly`），再把平台加入应用：
+本平台是一个[平台 nshm](https://github.com/longbridge/nsh/blob/main/website/zh-CN/docs/nshm.md)，以
+[`nsh-platform-miniprogram`](https://crates.io/crates/nsh-platform-miniprogram) 发布在 crates.io。把它加入应用：
 
 ```sh
 rustup target add wasm32-unknown-unknown
 cd my-app
-nsh add github:huacnlee/nsh-platform-miniprogram   # 写入 nsh.json 的 "dependencies"，并由 nsh.lock 锁定
+nsh add nsh-platform-miniprogram                    # 写入 nsh.json 的 "dependencies"，并由 nsh.lock 锁定
 
 nsh package --target miniprogram --out dist         # 生成小程序项目
 nsh run --target miniprogram                        # 构建并在微信开发者工具中打开
@@ -32,7 +32,7 @@ nsh run --target miniprogram                        # 构建并在微信开发�
 之后 `nsh.json` 中会有：
 
 ```json
-{ "dependencies": { "nsh-platform-miniprogram": { "github": "huacnlee/nsh-platform-miniprogram" } } }
+{ "dependencies": { "nsh-platform-miniprogram": "^0.1.0" } }
 ```
 
 `--target miniprogram` 时，`nsh` 在应用的 `.nsh/platforms/miniprogram` 中构建平台的二进制 `nsh-platform-miniprogram`
@@ -41,19 +41,8 @@ nsh run --target miniprogram                        # 构建并在微信开发�
 wechatwebdevtools`）打开；`--appid <id>` 设置项目的 AppID（默认是测试号）。`nsh run` 通过开发者工具的命令行打开项目，
 需要先开启 **设置 → 安全设置 → 服务端口**。
 
-### 从 crates.io 安装
-
-本平台也以 crate [`nsh-platform-miniprogram`](https://crates.io/crates/nsh-platform-miniprogram) 发布：同一个 crate
-的二进制是 `nsh` 调用的 CLI，库是链接进应用模块的后端。不用 nshm 时，把二进制安装到 `PATH`，`nsh` 在
-`--target miniprogram` 时会找到它：
-
-```sh
-cargo install nsh-platform-miniprogram
-nsh package --target miniprogram --out dist
-```
-
-发布的 crate 使用 crates.io 上的 NSH crate（`nsh-core` / `nsh-engine` 0.6），请搭配对应发布版的 `nsh`；本仓库本身跟随
-NSH nightly。
+想跟随本仓库的 `main`（它跟随 NSH nightly）而不是发布版，可以从 GitHub 添加：
+`nsh add github:huacnlee/nsh-platform-miniprogram`。
 
 在应用中，平台是 `platform.name === "miniprogram"`（TSX）或 `platform_name() == "miniprogram"`（Rust）；`platform.os` 是微信所在手机的系统（`"ios"` 或 `"android"`）。
 
