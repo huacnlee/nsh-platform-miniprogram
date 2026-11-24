@@ -322,7 +322,7 @@ impl<M: Measure + 'static> Runtime<M> {
 /// them:
 ///
 /// ```ignore
-/// nsh_miniprogram::app!(nsh_rust_app::ui_sets(), nsh_rust_app::root());
+/// nsh_platform_miniprogram::app!(nsh_rust_app::ui_sets(), nsh_rust_app::root());
 /// ```
 #[macro_export]
 macro_rules! app {

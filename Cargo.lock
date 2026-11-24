@@ -945,21 +945,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "nsh-miniprogram"
-version = "0.1.0"
-dependencies = [
- "log",
- "nsh-core",
- "nsh-engine",
- "serde_json",
-]
-
-[[package]]
 name = "nsh-platform-miniprogram"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "brotli",
+ "log",
+ "nsh-core",
+ "nsh-engine",
  "serde_json",
 ]
 

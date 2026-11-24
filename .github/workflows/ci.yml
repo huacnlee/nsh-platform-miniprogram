@@ -23,11 +23,11 @@ jobs:
         with:
           node-version: 22
       - name: Rust tests
-        run: cargo test --workspace
+        run: cargo test
       - name: Clippy
-        run: cargo clippy --workspace --all-targets
+        run: cargo clippy --all-targets
       - name: The backend builds for WebAssembly
-        run: cargo build -p nsh-miniprogram --target wasm32-unknown-unknown --release
+        run: cargo build --lib --target wasm32-unknown-unknown --release
       - name: Runtime tests
         run: node --test 'runtime/test/*.test.js'
       - name: Install GTK for the NSH development host

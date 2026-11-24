@@ -12,28 +12,19 @@ use std::{
 
 use anyhow::{Context as _, bail};
 
-/// The backend this CLI was built with: `NSH_MINIPROGRAM_SOURCE` (a
-/// checkout) when set, else the copy it was built in when it is still there
-/// (as an nshm, the app's `.nsh/platforms/miniprogram`), else this version's
-/// tag of the repository.
+/// The backend this CLI was built with, this crate's library:
+/// `NSH_MINIPROGRAM_SOURCE` (a checkout) when set, else the copy it was
+/// built in when it is still there (as an nshm, the app's
+/// `.nsh/platforms/miniprogram`; from crates.io, Cargo's registry), else
+/// this version from crates.io.
 fn backend() -> String {
     let checkout = std::env::var_os("NSH_MINIPROGRAM_SOURCE")
         .map(PathBuf::from)
         .or_else(|| Some(PathBuf::from(env!("CARGO_MANIFEST_DIR"))))
-        .filter(|dir| {
-            dir.join("crates/nsh-miniprogram/Cargo.toml")
-                .is_file()
-        });
+        .filter(|dir| dir.join("Cargo.toml").is_file() && dir.join("src/lib.rs").is_file());
     match checkout {
-        Some(dir) => format!(
-            "{{ path = {:?} }}",
-            dir.join("crates/nsh-miniprogram")
-                .to_string_lossy()
-        ),
-        None => format!(
-            "{{ git = \"https://github.com/huacnlee/nsh-platform-miniprogram\", tag = \"v{}\" }}",
-            env!("CARGO_PKG_VERSION")
-        ),
+        Some(dir) => format!("{{ path = {:?} }}", dir.to_string_lossy()),
+        None => format!("{{ version = \"={}\" }}", env!("CARGO_PKG_VERSION")),
     }
 }
 
@@ -119,7 +110,7 @@ pub(crate) fn write(dir: &Path, rust_app: &Path) -> anyhow::Result<()> {
              [package]\nname = \"nsh-miniprogram-runner\"\nversion = \"0.0.0\"\nedition = \"2024\"\npublish = false\n\n\
              [lib]\npath = \"lib.rs\"\ncrate-type = [\"cdylib\"]\n\n\
              [dependencies]\nnsh_rust_app = {{ package = {package:?}, path = {:?} }}\n\
-             nsh-miniprogram = {}\n\n\
+             nsh-platform-miniprogram = {}\n\n\
              # A Mini Program's package is small: the module is built for size.\n\
              [profile.release]\nopt-level = \"z\"\nlto = \"fat\"\ncodegen-units = 1\npanic = \"abort\"\nstrip = true\n\
              {patch}\n[workspace]\n",
@@ -133,7 +124,7 @@ pub(crate) fn write(dir: &Path, rust_app: &Path) -> anyhow::Result<()> {
          // The app's own UI sets (their fonts and files) without `nsh/base`'s,\n\
          // which serves TSX: the module links only the base components the app\n\
          // uses, and a Mini Program's package is small.\n\
-         nsh_miniprogram::app!(nsh_rust_app::app_ui_sets(), nsh_rust_app::root());\n",
+         nsh_platform_miniprogram::app!(nsh_rust_app::app_ui_sets(), nsh_rust_app::root());\n",
     )?;
     fs::write(
         dir.join("build.rs"),

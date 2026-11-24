@@ -1,49 +1,43 @@
-# The platform as an nshm: `nsh add github:huacnlee/nsh-platform-miniprogram`
+# One crate, the platform nshm: `nsh add github:huacnlee/nsh-platform-miniprogram`
 # puts it in an app's `nsh.json`, and `nsh <command> --target miniprogram`
 # builds this crate's binary `nsh-platform-miniprogram` and runs it
-# (`nsh.json` here says `"platform": "miniprogram"`).
+# (`nsh.json` here says `"platform": "miniprogram"`). Its library is the
+# backend the binary's runner links into the app's WebAssembly module.
 [package]
 name = "nsh-platform-miniprogram"
 description = "A community-maintained NSH platform nshm: runs Native Shell apps in WeChat Mini Programs (`--target miniprogram`)."
 # A literal version: `nsh` reads it from here as the nshm's version.
 version = "0.1.0"
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
-
-[lints]
-workspace = true
-
-[[bin]]
-name = "nsh-platform-miniprogram"
-path = "src/main.rs"
-
-[dependencies]
-anyhow.workspace = true
-brotli.workspace = true
-serde_json.workspace = true
-
-[workspace]
-resolver = "3"
-members = ["crates/*"]
-
-[workspace.package]
-version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/huacnlee/nsh-platform-miniprogram"
+readme = "README.md"
+keywords = ["nsh", "miniprogram", "wechat", "wasm", "gui"]
+categories = ["gui", "wasm"]
+include = ["/src", "/runtime", "!/runtime/test", "/nsh.json", "/README.md", "/LICENSE"]
 
-[workspace.lints.rust]
+[lints.rust]
 missing_docs = "warn"
 unreachable_pub = "deny"
 
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "nsh-platform-miniprogram"
+path = "src/cli/main.rs"
+
 # NSH nightly: its crates from longbridge/nsh's main, which the nightly
 # `nsh` is built from. The platform follows NSH's protocol (mount items, the
-# text engine, events) as it changes there.
-[workspace.dependencies]
-nsh-core = { git = "https://github.com/longbridge/nsh", branch = "main" }
-nsh-engine = { git = "https://github.com/longbridge/nsh", branch = "main", default-features = false }
-anyhow = "1"
-brotli = "8"
+# text engine, events) as it changes there. A published crate takes them
+# from crates.io at `version` instead (Git sources aren't published).
+[dependencies]
+nsh-core = { version = "0.6", git = "https://github.com/longbridge/nsh", branch = "main" }
+nsh-engine = { version = "0.6", git = "https://github.com/longbridge/nsh", branch = "main", default-features = false }
 log = "0.4"
 serde_json = "1"
+
+# The binary's (the CLI's); the library, built for WebAssembly, needs none.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+anyhow = "1"
+brotli = "8"

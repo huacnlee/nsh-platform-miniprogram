@@ -48,7 +48,7 @@ In the app, the platform is `platform.name === "miniprogram"` (TSX) or `platform
 ```
 your app (Rust)        components, layout, state
 nsh-engine             LocalEngine, in WebAssembly in the Mini Program's logic layer
-crates/nsh-miniprogram
+nsh-platform-miniprogram (one crate: the library is the backend, the binary the CLI)
   src/lib.rs           Runtime: starts the engine, pumps it, sends taps, scrolls and size changes
   src/encode.rs        each MountBatch → JSON operations (["c", 2, "view"], ["f", 2, 0, 0, 100, 40], ...)
   src/text.rs          a TextEngine on the logic layer's canvas measureText; lines of styled runs broken on the engine's side
@@ -60,7 +60,7 @@ runtime/
   nsh/nsh-mp.js        loads app.wasm.br (WXWebAssembly), runs timers and frames, routes events
   nsh/tree.js          the views as a tree of plain objects; each batch becomes the fewest setData paths
   components/nsh-node  a recursive component: each view absolutely positioned at the frame NSH laid out
-src/ (the nshm, binary nsh-platform-miniprogram)
+src/cli/ (the nshm's binary nsh-platform-miniprogram)
   package / run        `$NSH build <app>`, a cdylib runner on NSH's generated `nsh_rust_app`, built for
                        wasm32 for size, imports checked, the project written with the module brotli-compressed
 ```
@@ -111,7 +111,7 @@ the nightly `nsh` is built from, and CI packages the example with the nightly `n
 ## Development
 
 ```sh
-cargo test --workspace                       # the backend (a counter on a LocalEngine) and the CLI
+cargo test                                   # the backend (a counter on a LocalEngine) and the CLI
 node --test 'runtime/test/*.test.js'         # the runtime's tree
 
 # the whole app: package the counter, then run its real module on Node through the real runtime

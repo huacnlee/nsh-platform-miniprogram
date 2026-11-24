@@ -45,7 +45,7 @@ wechatwebdevtools`）打开；`--appid <id>` 设置项目的 AppID（默认是�
 ```
 你的应用（Rust）         组件、布局、状态
 nsh-engine             LocalEngine，以 WebAssembly 运行在小程序逻辑层
-crates/nsh-miniprogram
+nsh-platform-miniprogram（单个 crate：库是后端，二进制是 CLI）
   src/lib.rs           Runtime：启动并驱动引擎，送回点击、滚动和尺寸变化
   src/encode.rs        每个 MountBatch → JSON 操作（["c", 2, "view"]、["f", 2, 0, 0, 100, 40]……）
   src/text.rs          基于逻辑层 canvas measureText 的 TextEngine；在引擎一侧把多样式的文本断成行
@@ -57,7 +57,7 @@ runtime/
   nsh/nsh-mp.js        加载 app.wasm.br（WXWebAssembly），运行定时器和帧，分发事件
   nsh/tree.js          视图树（普通对象）；每个批次变成最少的 setData 路径
   components/nsh-node  递归组件：每个视图绝对定位在 NSH 布局好的 frame 上
-src/（nshm，二进制 nsh-platform-miniprogram）
+src/cli/（nshm 的二进制 nsh-platform-miniprogram）
   package / run        `$NSH build <app>`，基于 NSH 生成的 `nsh_rust_app` 写出 cdylib runner，按体积优化构建到
                        wasm32，检查导入，写出项目，模块用 brotli 压缩
 ```
@@ -102,7 +102,7 @@ NSH 版本；在 WebAssembly 中，NSH 的 crate 会从宿主导入几个函数�
 ## 开发
 
 ```sh
-cargo test --workspace                       # 后端（在 LocalEngine 上运行的计数器）和 CLI
+cargo test                                   # 后端（在 LocalEngine 上运行的计数器）和 CLI
 node --test 'runtime/test/*.test.js'         # 运行时的视图树
 
 # 完整应用：打包计数器，再在 Node 上通过真实运行时运行它的真实模块
